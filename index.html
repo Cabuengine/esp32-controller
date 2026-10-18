@@ -34,7 +34,7 @@
         async function connectBLE() {
             try {
                 const device = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: 'ESP32-Button' }],
+                    acceptAllDevices: true,
                     optionalServices: [SERVICE_UUID]
                 });
 
