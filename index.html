@@ -1,0 +1,70 @@
+//*** スマホ入力画面 **************************************************************************
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 BLE コントローラー</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f0f2f5; }
+        .btn { width: 200px; height: 60px; font-size: 20px; margin: 15px; border: none; border-radius: 10px; color: white; cursor: pointer; }
+        .btn-connect { background-color: #007bff; }
+        .btn-on { background-color: #28a745; }
+        .btn-off { background-color: #dc3545; }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        #status { font-size: 18px; margin-bottom: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2>ESP32 BLE ボタン操作</h2>
+    <div id="status">状態: 未接続</div>
+
+    <button id="connectBtn" class="btn btn-connect" onclick="connectBLE()">ESP32に接続</button><br>
+    <button id="onBtn" class="btn btn-on" onclick="sendCommand('1')" disabled>ON (1)</button><br>
+    <button id="offBtn" class="btn btn-off" onclick="sendCommand('0')" disabled>OFF (0)</button>
+
+    <script>
+        // ESP32コードと一致するUUIDを設定
+        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+        let bleCharacteristic = null;
+
+        // ESP32への接続処理
+        async function connectBLE() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'ESP32-Button' }],
+                    optionalServices: [SERVICE_UUID]
+                });
+
+                document.getElementById("status").innerText = "接続中...";
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(SERVICE_UUID);
+                bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+                document.getElementById("status").innerText = "状態: 接続完了！";
+                document.getElementById("onBtn").disabled = false;
+                document.getElementById("offBtn").disabled = false;
+                document.getElementById("connectBtn").disabled = true;
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById("status").innerText = "接続エラー: " + error;
+            }
+        }
+
+        // コマンド（'1' または '0'）の送信処理
+        async function sendCommand(cmd) {
+            if (!bleCharacteristic) return;
+            try {
+                const encoder = new TextEncoder();
+                await bleCharacteristic.writeValue(encoder.encode(cmd));
+            } catch (error) {
+                console.error("送信エラー:", error);
+            }
+        }
+    </script>
+</body>
+</html>
